@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <EditText
+            android:id="@+id/recipe_title_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Recipe title" />
+
+        <EditText
+            android:id="@+id/recipe_ingredients_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Ingredients"
+            android:minLines="4"
+            android:gravity="top"
+            android:inputType="textMultiLine" />
+
+        <EditText
+            android:id="@+id/recipe_instructions_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Instructions"
+            android:minLines="5"
+            android:gravity="top"
+            android:inputType="textMultiLine" />
+
+        <Button
+            android:id="@+id/select_image_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Add Recipe Photo" />
+
+        <ImageView
+            android:id="@+id/recipe_image_preview"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_marginTop="12dp"
+            android:scaleType="centerCrop"
+            android:visibility="gone"
+            android:contentDescription="Recipe image preview" />
+
+        <Switch
+            android:id="@+id/auto_macros_switch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Suggest auto-filled macros"
+            android:layout_marginTop="16dp" />
+
+        <LinearLayout
+            android:id="@+id/manual_macros_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <EditText
+                android:id="@+id/calories_input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Calories"
+                android:inputType="numberDecimal" />
+
+            <EditText
+                android:id="@+id/protein_input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Protein (g)"
+                android:inputType="numberDecimal" />
+
+            <EditText
+                android:id="@+id/carbs_input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Carbohydrates (g)"
+                android:inputType="numberDecimal" />
+
+            <EditText
+                android:id="@+id/fat_input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Fat (g)"
+                android:inputType="numberDecimal" />
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/save_recipe_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Save Recipe" />
+
+    </LinearLayout>
+
+</ScrollView>
