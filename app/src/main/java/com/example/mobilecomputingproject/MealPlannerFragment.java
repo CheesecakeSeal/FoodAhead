@@ -1,64 +1,194 @@
 package com.example.mobilecomputingproject;
 
+import android.app.AlertDialog;
+import android.graphics.Color;
 import android.os.Bundle;
-
-import androidx.fragment.app.Fragment;
-
+import android.text.TextUtils;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TableLayout;
+import android.widget.TableRow;
+import android.widget.TextView;
+import android.widget.Toast;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link MealPlannerFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+
+import java.util.ArrayList;
+
 public class MealPlannerFragment extends Fragment {
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
+    private TableLayout plannerTable;
+    private RecipeDbHelper dbHelper;
 
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
+    private final String[] days = {
+            "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"
+    };
 
     public MealPlannerFragment() {
         // Required empty public constructor
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment MealPlannerFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static MealPlannerFragment newInstance(String param1, String param2) {
-        MealPlannerFragment fragment = new MealPlannerFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
+    @Override
+    public View onCreateView(
+            @NonNull LayoutInflater inflater,
+            ViewGroup container,
+            Bundle savedInstanceState
+    ) {
+        return inflater.inflate(R.layout.fragment_meal_planner, container, false);
     }
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
+    public void onViewCreated(
+            @NonNull View view,
+            @Nullable Bundle savedInstanceState
+    ) {
+        super.onViewCreated(view, savedInstanceState);
+
+        dbHelper = new RecipeDbHelper(requireContext());
+        plannerTable = view.findViewById(R.id.meal_planner_table);
+
+        buildPlannerGrid();
+    }
+
+    private void buildPlannerGrid() {
+        plannerTable.removeAllViews();
+
+        TableRow headerRow = new TableRow(requireContext());
+        headerRow.addView(createHeaderCell(""));
+
+        for (String day : days) {
+            headerRow.addView(createHeaderCell(day));
+        }
+
+        plannerTable.addView(headerRow);
+
+        for (int hour = 0; hour < 24; hour++) {
+            TableRow row = new TableRow(requireContext());
+
+            row.addView(createHeaderCell(String.format("%02d:00", hour)));
+
+            for (int day = 0; day < 7; day++) {
+                row.addView(createMealSlotCell(day, hour));
+            }
+
+            plannerTable.addView(row);
         }
     }
 
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_meal_planner, container, false);
+    private TextView createHeaderCell(String text) {
+        TextView cell = createCell(text);
+
+        cell.setTextColor(getResources().getColor(R.color.planner_text));
+        cell.setTypeface(null, android.graphics.Typeface.BOLD);
+        cell.setBackgroundColor(getResources().getColor(R.color.planner_cell_empty));
+
+        return cell;
+    }
+
+    private TextView createMealSlotCell(int day, int hour) {
+        String mealTitle = dbHelper.getMealForSlot(day, hour);
+        long recipeId = dbHelper.getMealRecipeIdForSlot(day, hour);
+
+        TextView cell = createCell(mealTitle);
+
+        if (mealTitle.isEmpty()) {
+            cell.setTextColor(getResources().getColor(R.color.planner_text));
+            cell.setBackgroundColor(getResources().getColor(R.color.planner_cell_empty));
+            cell.setOnClickListener(v -> showRecipePicker(day, hour));
+        } else {
+            cell.setTextColor(Color.BLACK);
+            cell.setBackgroundColor(getResources().getColor(R.color.planner_cell_filled));
+            cell.setOnClickListener(v -> openRecipeDetails(recipeId));
+        }
+
+        cell.setOnLongClickListener(v -> {
+            dbHelper.clearMealSlot(day, hour);
+            Toast.makeText(getContext(), "Meal cleared", Toast.LENGTH_SHORT).show();
+            buildPlannerGrid();
+            return true;
+        });
+
+        return cell;
+    }
+
+    private TextView createCell(String text) {
+        TextView cell = new TextView(requireContext());
+
+        TableRow.LayoutParams params = new TableRow.LayoutParams(
+                dpToPx(95),
+                dpToPx(70)
+        );
+        params.setMargins(1, 1, 1, 1);
+
+        cell.setLayoutParams(params);
+        cell.setText(text);
+        cell.setGravity(Gravity.CENTER);
+        cell.setPadding(4, 2, 4, 2);
+        cell.setTextSize(12);
+        cell.setSingleLine(true);
+        cell.setEllipsize(TextUtils.TruncateAt.END);
+        cell.setIncludeFontPadding(false);
+        cell.setBackgroundColor(getResources().getColor(R.color.planner_cell_empty));
+
+        return cell;
+    }
+
+    private void showRecipePicker(int day, int hour) {
+        ArrayList<Recipe> recipes = dbHelper.getAllRecipes();
+
+        if (recipes.isEmpty()) {
+            Toast.makeText(getContext(), "Add recipes before planning meals", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String[] recipeNames = new String[recipes.size()];
+
+        for (int i = 0; i < recipes.size(); i++) {
+            recipeNames[i] = recipes.get(i).getTitle();
+        }
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Choose recipe for " + days[day] + " " + String.format("%02d:00", hour))
+                .setItems(recipeNames, (dialog, which) -> {
+                    Recipe selectedRecipe = recipes.get(which);
+
+                    dbHelper.saveMealPlan(
+                            day,
+                            hour,
+                            selectedRecipe.getId(),
+                            selectedRecipe.getTitle()
+                    );
+
+                    Toast.makeText(getContext(), "Meal added", Toast.LENGTH_SHORT).show();
+                    buildPlannerGrid();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void openRecipeDetails(long recipeId) {
+        Recipe recipe = dbHelper.getRecipeById(recipeId);
+
+        if (recipe == null) {
+            Toast.makeText(getContext(), "Recipe not found", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        requireActivity()
+                .getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, RecipeDetailFragment.newInstance(recipe))
+                .addToBackStack(null)
+                .commit();
+
+        ((MainActivity) requireActivity()).setToolbarTitle(recipe.getTitle());
+    }
+
+    private int dpToPx(int dp) {
+        return Math.round(dp * getResources().getDisplayMetrics().density);
     }
 }

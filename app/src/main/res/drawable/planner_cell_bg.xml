@@ -1,0 +1,6 @@
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="@color/planner_cell_empty"/>
+    <stroke
+        android:width="1dp"
+        android:color="@color/planner_border"/>
+</shape>

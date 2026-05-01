@@ -2,4 +2,8 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="planner_cell_empty">#1E1E1E</color>
+    <color name="planner_cell_filled">#D2BDFF</color>
+    <color name="planner_text">#FFFFFF</color>
+    <color name="planner_border">#444444</color>
 </resources>

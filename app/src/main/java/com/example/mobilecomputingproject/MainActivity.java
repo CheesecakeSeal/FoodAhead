@@ -40,6 +40,21 @@ public class MainActivity extends AppCompatActivity {
 
             return loadFragment(selectedFragment);
         });
+
+        getSupportFragmentManager().addOnBackStackChangedListener(() -> {
+            Fragment currentFragment = getSupportFragmentManager()
+                    .findFragmentById(R.id.fragment_container);
+
+            if (currentFragment instanceof RecipeFragment) {
+                setToolbarTitle("Recipe Manager");
+            } else if (currentFragment instanceof MealPlannerFragment) {
+                setToolbarTitle("Meal Planner");
+            } else if (currentFragment instanceof SettingsFragment) {
+                setToolbarTitle("Settings");
+            } else if (currentFragment instanceof AddRecipeFragment) {
+                setToolbarTitle("Add Recipe");
+            }
+        });
     }
 
     private boolean loadFragment(Fragment fragment) {

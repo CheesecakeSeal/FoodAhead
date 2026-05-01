@@ -1,14 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".MealPlannerFragment">
+    android:layout_height="match_parent">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="@string/hello_blank_fragment" />
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="8dp">
 
-</FrameLayout>
+        <HorizontalScrollView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <TableLayout
+                android:id="@+id/meal_planner_table"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+        </HorizontalScrollView>
+
+        <TextView
+            android:id="@+id/planner_instructions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:padding="12dp"
+            android:text="How to use the planner:\n• Tap an empty slot to add a recipe.\n• Tap a filled slot to view the recipe.\n• Long press a filled slot to clear it.\n• Scroll vertically to view all 24 hours.\n• Scroll horizontally to view all days."
+            android:textSize="14sp"
+            android:textColor="@color/planner_text"
+            android:background="@color/planner_cell_empty" />
+
+    </LinearLayout>
+
+</ScrollView>

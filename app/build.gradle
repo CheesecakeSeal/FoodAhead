@@ -18,6 +18,15 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        def usdaApiKey = project.rootProject.file("local.properties")
+                .withInputStream { stream ->
+                    def properties = new Properties()
+                    properties.load(stream)
+                    properties.getProperty("USDA_API_KEY", "")
+                }
+
+        buildConfigField "String", "USDA_API_KEY", "\"${usdaApiKey}\""
     }
 
     buildTypes {
@@ -30,10 +39,16 @@ android {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
+
+    buildFeatures {
+        buildConfig true
+    }
 }
 
 dependencies {
-
+    implementation 'com.squareup.retrofit2:retrofit:2.11.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.11.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation libs.appcompat
     implementation libs.material
     implementation libs.activity
