@@ -1,14 +1,59 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".SettingsFragment">
+    android:layout_height="match_parent">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="@string/hello_blank_fragment" />
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
 
-</FrameLayout>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Appearance"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <Switch
+            android:id="@+id/light_mode_switch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Light Mode" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Data"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/clear_all_data_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Clear All Data" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="About"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/about_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="FoodAhead v1.0\nPersonal Recipe Manager and Meal Planner.\n\nUses USDA FoodData Central API to provide estimated macro values."
+            android:textSize="14sp" />
+
+    </LinearLayout>
+
+</ScrollView>

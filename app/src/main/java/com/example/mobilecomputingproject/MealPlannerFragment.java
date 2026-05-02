@@ -1,7 +1,6 @@
 package com.example.mobilecomputingproject;
 
 import android.app.AlertDialog;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.Gravity;
@@ -100,7 +99,7 @@ public class MealPlannerFragment extends Fragment {
             cell.setBackgroundColor(getResources().getColor(R.color.planner_cell_empty));
             cell.setOnClickListener(v -> showRecipePicker(day, hour));
         } else {
-            cell.setTextColor(Color.BLACK);
+            cell.setTextColor(getResources().getColor(R.color.planner_recipe_text));
             cell.setBackgroundColor(getResources().getColor(R.color.planner_cell_filled));
             cell.setOnClickListener(v -> openRecipeDetails(recipeId));
         }

@@ -8,6 +8,9 @@ import androidx.fragment.app.Fragment;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
+import android.content.SharedPreferences;
+import androidx.appcompat.app.AppCompatDelegate;
+
 public class MainActivity extends AppCompatActivity {
 
     private BottomNavigationView bottomNavigationView;
@@ -15,14 +18,18 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        applySavedTheme();
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         toolbarTitle = findViewById(R.id.toolbar_title);
         bottomNavigationView = findViewById(R.id.bottom_navigation);
 
-        loadFragment(new RecipeFragment());
-        setToolbarTitle("Recipe Manager");
+        if (savedInstanceState == null) {
+            loadFragment(new RecipeFragment());
+            setToolbarTitle("Recipe Manager");
+        }
 
         bottomNavigationView.setOnItemSelectedListener(item -> {
             Fragment selectedFragment = null;
@@ -69,6 +76,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void setToolbarTitle(String title) {
+
         toolbarTitle.setText(title);
+    }
+
+    private void applySavedTheme() {
+        SharedPreferences prefs = getSharedPreferences("FoodAheadPrefs", MODE_PRIVATE);
+        boolean lightMode = prefs.getBoolean("light_mode", false);
+
+        AppCompatDelegate.setDefaultNightMode(
+                lightMode
+                        ? AppCompatDelegate.MODE_NIGHT_NO
+                        : AppCompatDelegate.MODE_NIGHT_YES
+        );
     }
 }

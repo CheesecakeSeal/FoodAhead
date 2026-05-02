@@ -11,7 +11,7 @@ import java.util.ArrayList;
 
 public class RecipeDbHelper extends SQLiteOpenHelper {
 
-    public static final int DATABASE_VERSION = 2;
+    public static final int DATABASE_VERSION = 4;
     public static final String DATABASE_NAME = "foodahead.db";
     public static final String TABLE_RECIPES = "recipes";
     public static final String COLUMN_TITLE = "title";
@@ -48,20 +48,26 @@ public class RecipeDbHelper extends SQLiteOpenHelper {
 
         db.execSQL(createRecipesTable);
 
-        String createMealPlanTable = "CREATE TABLE " + TABLE_MEAL_PLAN + " ("
-                + "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                + COLUMN_DAY + " INTEGER, "
-                + COLUMN_HOUR + " INTEGER, "
-                + COLUMN_RECIPE_ID + " INTEGER, "
-                + COLUMN_RECIPE_TITLE + " TEXT)";
+        String createMealPlanTable = "CREATE TABLE " + TABLE_MEAL_PLAN + " (" +
+                BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                COLUMN_DAY + " INTEGER, " +
+                COLUMN_HOUR + " INTEGER, " +
+                COLUMN_RECIPE_ID + " INTEGER, " +
+                COLUMN_RECIPE_TITLE + " TEXT)";
 
         db.execSQL(createMealPlanTable);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_MEAL_PLAN);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_RECIPES);
         onCreate(db);
+    }
+
+    @Override
+    public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        onUpgrade(db, oldVersion, newVersion);
     }
 
     public long insertRecipe(Recipe recipe) {
@@ -166,7 +172,7 @@ public class RecipeDbHelper extends SQLiteOpenHelper {
         values.put(COLUMN_RECIPE_TITLE, recipeTitle);
 
         Cursor cursor = db.rawQuery(
-                "SELECT id FROM " + TABLE_MEAL_PLAN +
+                "SELECT " + BaseColumns._ID + " FROM " + TABLE_MEAL_PLAN +
                         " WHERE " + COLUMN_DAY + "=? AND " + COLUMN_HOUR + "=?",
                 new String[]{String.valueOf(day), String.valueOf(hour)}
         );
