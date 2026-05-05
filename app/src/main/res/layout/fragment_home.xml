@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/home_heading"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Weekly Macro Goals"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:id="@+id/calories_progress_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Calories: 0 / 0 kcal"
+            android:textSize="16sp" />
+
+        <ProgressBar
+            android:id="@+id/calories_progress_bar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:progress="0"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:id="@+id/protein_progress_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Protein: 0 / 0 g"
+            android:textSize="16sp" />
+
+        <ProgressBar
+            android:id="@+id/protein_progress_bar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:progress="0"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:id="@+id/carbs_progress_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Carbs: 0 / 0 g"
+            android:textSize="16sp" />
+
+        <ProgressBar
+            android:id="@+id/carbs_progress_bar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:progress="0"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:id="@+id/fat_progress_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Fat: 0 / 0 g"
+            android:textSize="16sp" />
+
+        <ProgressBar
+            android:id="@+id/fat_progress_bar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:progress="0"
+            android:layout_marginBottom="24dp" />
+
+        <Button
+            android:id="@+id/set_goals_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Set Targets" />
+
+        <Button
+            android:id="@+id/add_manual_progress_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Add Progress Manually" />
+
+        <Button
+            android:id="@+id/add_recipe_progress_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Add Progress From Recipe" />
+
+        <TextView
+            android:id="@+id/last_week_heading"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Last Week Results"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/last_week_results_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="No previous weekly results yet."
+            android:textSize="15sp" />
+
+    </LinearLayout>
+
+</ScrollView>

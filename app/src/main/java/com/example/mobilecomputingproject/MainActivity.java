@@ -1,15 +1,14 @@
 package com.example.mobilecomputingproject;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.fragment.app.Fragment;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-
-import android.content.SharedPreferences;
-import androidx.appcompat.app.AppCompatDelegate;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -26,15 +25,13 @@ public class MainActivity extends AppCompatActivity {
         toolbarTitle = findViewById(R.id.toolbar_title);
         bottomNavigationView = findViewById(R.id.bottom_navigation);
 
-        if (savedInstanceState == null) {
-            loadFragment(new RecipeFragment());
-            setToolbarTitle("Recipe Manager");
-        }
-
         bottomNavigationView.setOnItemSelectedListener(item -> {
             Fragment selectedFragment = null;
 
-            if (item.getItemId() == R.id.nav_recipes) {
+            if (item.getItemId() == R.id.nav_home) {
+                selectedFragment = new HomeFragment();
+                setToolbarTitle("Home");
+            } else if (item.getItemId() == R.id.nav_recipes) {
                 selectedFragment = new RecipeFragment();
                 setToolbarTitle("Recipe Manager");
             } else if (item.getItemId() == R.id.nav_planner) {
@@ -48,19 +45,15 @@ public class MainActivity extends AppCompatActivity {
             return loadFragment(selectedFragment);
         });
 
+        if (savedInstanceState == null) {
+            bottomNavigationView.setSelectedItemId(R.id.nav_home);
+        }
+
         getSupportFragmentManager().addOnBackStackChangedListener(() -> {
             Fragment currentFragment = getSupportFragmentManager()
                     .findFragmentById(R.id.fragment_container);
 
-            if (currentFragment instanceof RecipeFragment) {
-                setToolbarTitle("Recipe Manager");
-            } else if (currentFragment instanceof MealPlannerFragment) {
-                setToolbarTitle("Meal Planner");
-            } else if (currentFragment instanceof SettingsFragment) {
-                setToolbarTitle("Settings");
-            } else if (currentFragment instanceof AddRecipeFragment) {
-                setToolbarTitle("Add Recipe");
-            }
+            updateToolbarForFragment(currentFragment);
         });
     }
 
@@ -72,11 +65,26 @@ public class MainActivity extends AppCompatActivity {
                     .commit();
             return true;
         }
+
         return false;
     }
 
-    public void setToolbarTitle(String title) {
+    private void updateToolbarForFragment(Fragment currentFragment) {
+        if (currentFragment instanceof HomeFragment) {
+            setToolbarTitle("Home");
+        } else if (currentFragment instanceof RecipeFragment) {
+            setToolbarTitle("Recipe Manager");
+        } else if (currentFragment instanceof MealPlannerFragment) {
+            setToolbarTitle("Meal Planner");
+        } else if (currentFragment instanceof SettingsFragment) {
+            setToolbarTitle("Settings");
+        } else if (currentFragment instanceof AddRecipeFragment) {
+            setToolbarTitle("Add Recipe");
+        } else if (currentFragment instanceof RecipeDetailFragment) {
+        }
+    }
 
+    public void setToolbarTitle(String title) {
         toolbarTitle.setText(title);
     }
 

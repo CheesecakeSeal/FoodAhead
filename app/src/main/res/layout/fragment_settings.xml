@@ -7,53 +7,82 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="24dp">
 
         <TextView
+            android:id="@+id/settings_appearance_heading"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Appearance"
-            android:textSize="20sp"
+            android:textSize="22sp"
             android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="12dp" />
 
-        <Switch
-            android:id="@+id/light_mode_switch"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Light Mode" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="28dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Light Mode"
+                android:textSize="18sp" />
+
+            <Switch
+                android:id="@+id/light_mode_switch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
 
         <TextView
+            android:id="@+id/settings_macro_heading"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Macro Progress Tracking"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="28dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Weekly Targets"
+                android:textSize="18sp" />
+
+            <Switch
+                android:id="@+id/weekly_targets_switch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/settings_data_heading"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Data"
-            android:textSize="20sp"
+            android:textSize="22sp"
             android:textStyle="bold"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="16dp" />
 
         <Button
             android:id="@+id/clear_all_data_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Clear All Data" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="About"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="8dp" />
-
-        <TextView
-            android:id="@+id/about_text"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="FoodAhead v1.0\nPersonal Recipe Manager and Meal Planner.\n\nUses USDA FoodData Central API to provide estimated macro values."
-            android:textSize="14sp" />
+            android:text="Clear All Data"
+            android:paddingTop="14dp"
+            android:paddingBottom="14dp" />
 
     </LinearLayout>
-
 </ScrollView>
