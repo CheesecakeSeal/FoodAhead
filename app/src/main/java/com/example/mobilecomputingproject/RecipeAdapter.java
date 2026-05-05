@@ -18,8 +18,8 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
         void onRecipeClick(Recipe recipe);
     }
 
-    private List<Recipe> recipes;
-    private OnRecipeClickListener listener;
+    private final List<Recipe> recipes;
+    private final OnRecipeClickListener listener;
 
     public RecipeAdapter(List<Recipe> recipes, OnRecipeClickListener listener) {
         this.recipes = recipes;
@@ -40,6 +40,12 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
 
         holder.title.setText(recipe.getTitle());
 
+        if (recipe.getTags() != null && !recipe.getTags().trim().isEmpty()) {
+            holder.tags.setText("Tags: " + recipe.getTags());
+        } else {
+            holder.tags.setText("Tags: None");
+        }
+
         if (recipe.getImageUri() != null && !recipe.getImageUri().isEmpty()) {
             holder.image.setImageURI(Uri.parse(recipe.getImageUri()));
         } else {
@@ -56,11 +62,13 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
 
     static class RecipeViewHolder extends RecyclerView.ViewHolder {
         TextView title;
+        TextView tags;
         ImageView image;
 
         public RecipeViewHolder(@NonNull View itemView) {
             super(itemView);
             title = itemView.findViewById(R.id.recipe_title);
+            tags = itemView.findViewById(R.id.recipe_tags);
             image = itemView.findViewById(R.id.recipe_item_image);
         }
     }

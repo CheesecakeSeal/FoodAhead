@@ -1,27 +1,28 @@
 package com.example.mobilecomputingproject;
 
+import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
-import android.app.AlertDialog;
-import android.content.ClipData;
-import android.content.ClipboardManager;
-import android.content.Context;
-import android.widget.Button;
-import android.widget.Toast;
-
 public class RecipeDetailFragment extends Fragment {
 
+    private static final String ARG_ID = "id";
     private static final String ARG_TITLE = "title";
+    private static final String ARG_TAGS = "tags";
     private static final String ARG_INGREDIENTS = "ingredients";
     private static final String ARG_INSTRUCTIONS = "instructions";
     private static final String ARG_IMAGE_URI = "imageUri";
@@ -29,13 +30,14 @@ public class RecipeDetailFragment extends Fragment {
     private static final String ARG_PROTEIN = "protein";
     private static final String ARG_CARBS = "carbs";
     private static final String ARG_FAT = "fat";
-    private static final String ARG_ID = "id";
 
     public static RecipeDetailFragment newInstance(Recipe recipe) {
         RecipeDetailFragment fragment = new RecipeDetailFragment();
         Bundle args = new Bundle();
 
+        args.putLong(ARG_ID, recipe.getId());
         args.putString(ARG_TITLE, recipe.getTitle());
+        args.putString(ARG_TAGS, recipe.getTags());
         args.putString(ARG_INGREDIENTS, recipe.getIngredients());
         args.putString(ARG_INSTRUCTIONS, recipe.getInstructions());
         args.putString(ARG_IMAGE_URI, recipe.getImageUri());
@@ -43,10 +45,8 @@ public class RecipeDetailFragment extends Fragment {
         args.putString(ARG_PROTEIN, recipe.getProtein());
         args.putString(ARG_CARBS, recipe.getCarbs());
         args.putString(ARG_FAT, recipe.getFat());
-        args.putLong(ARG_ID, recipe.getId());
 
         fragment.setArguments(args);
-
         return fragment;
     }
 
@@ -72,102 +72,121 @@ public class RecipeDetailFragment extends Fragment {
 
         ImageView image = view.findViewById(R.id.detail_recipe_image);
         TextView title = view.findViewById(R.id.detail_recipe_title);
+        TextView tags = view.findViewById(R.id.detail_recipe_tags);
         TextView ingredients = view.findViewById(R.id.detail_recipe_ingredients);
         TextView instructions = view.findViewById(R.id.detail_recipe_instructions);
         TextView macros = view.findViewById(R.id.detail_recipe_macros);
+
         Button copyButton = view.findViewById(R.id.copy_recipe_button);
         Button editButton = view.findViewById(R.id.edit_recipe_button);
         Button deleteButton = view.findViewById(R.id.delete_recipe_button);
 
         Bundle args = getArguments();
 
-        if (args != null) {
-            String recipeTitle = args.getString(ARG_TITLE, "");
-            String imageUri = args.getString(ARG_IMAGE_URI, "");
+        if (args == null) {
+            return;
+        }
 
-            title.setText(recipeTitle);
-            ingredients.setText(args.getString(ARG_INGREDIENTS, ""));
-            instructions.setText(args.getString(ARG_INSTRUCTIONS, ""));
+        long recipeId = args.getLong(ARG_ID);
+        String recipeTitle = args.getString(ARG_TITLE, "");
+        String recipeTags = args.getString(ARG_TAGS, "");
+        String recipeIngredients = args.getString(ARG_INGREDIENTS, "");
+        String recipeInstructions = args.getString(ARG_INSTRUCTIONS, "");
+        String imageUri = args.getString(ARG_IMAGE_URI, "");
+        String calories = args.getString(ARG_CALORIES, "");
+        String protein = args.getString(ARG_PROTEIN, "");
+        String carbs = args.getString(ARG_CARBS, "");
+        String fat = args.getString(ARG_FAT, "");
 
-            macros.setText(
-                    "Calories: " + args.getString(ARG_CALORIES, "") + "\n" +
-                            "Protein: " + args.getString(ARG_PROTEIN, "") + "g\n" +
-                            "Carbs: " + args.getString(ARG_CARBS, "") + "g\n" +
-                            "Fat: " + args.getString(ARG_FAT, "") + "g"
+        title.setText(recipeTitle);
+
+        if (recipeTags != null && !recipeTags.trim().isEmpty()) {
+            tags.setText("Tags: " + recipeTags);
+        } else {
+            tags.setText("Tags: None");
+        }
+
+        ingredients.setText(recipeIngredients);
+        instructions.setText(recipeInstructions);
+
+        macros.setText(
+                "Calories: " + calories + "\n" +
+                        "Protein: " + protein + "g\n" +
+                        "Carbs: " + carbs + "g\n" +
+                        "Fat: " + fat + "g"
+        );
+
+        if (imageUri != null && !imageUri.isEmpty()) {
+            image.setImageURI(Uri.parse(imageUri));
+        }
+
+        ((MainActivity) requireActivity()).setToolbarTitle(recipeTitle);
+
+        String fullRecipeText =
+                recipeTitle + "\n" +
+                        "Tags: " + (recipeTags == null || recipeTags.trim().isEmpty() ? "None" : recipeTags) + "\n\n" +
+                        "Ingredients:\n" + recipeIngredients + "\n\n" +
+                        "Instructions:\n" + recipeInstructions + "\n\n" +
+                        "Macros:\n" +
+                        "Calories: " + calories + "\n" +
+                        "Protein: " + protein + "g\n" +
+                        "Carbs: " + carbs + "g\n" +
+                        "Fat: " + fat + "g";
+
+        copyButton.setOnClickListener(v -> {
+            ClipboardManager clipboard =
+                    (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
+
+            ClipData clip = ClipData.newPlainText("Recipe", fullRecipeText);
+            clipboard.setPrimaryClip(clip);
+
+            Toast.makeText(getContext(), "Recipe copied to clipboard", Toast.LENGTH_SHORT).show();
+        });
+
+        editButton.setOnClickListener(v -> {
+            Recipe recipe = new Recipe(
+                    recipeId,
+                    recipeTitle,
+                    recipeIngredients,
+                    recipeInstructions,
+                    imageUri,
+                    calories,
+                    protein,
+                    carbs,
+                    fat,
+                    recipeTags
             );
 
-            if (imageUri != null && !imageUri.isEmpty()) {
-                image.setImageURI(Uri.parse(imageUri));
-            }
+            requireActivity()
+                    .getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.fragment_container, AddRecipeFragment.newInstanceForEdit(recipe))
+                    .addToBackStack(null)
+                    .commit();
 
-            ((MainActivity) requireActivity()).setToolbarTitle(recipeTitle);
+            ((MainActivity) requireActivity()).setToolbarTitle("Edit Recipe");
+        });
 
-            long recipeId = args.getLong(ARG_ID);
+        deleteButton.setOnClickListener(v -> {
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("Delete Recipe")
+                    .setMessage("Are you sure you want to delete this recipe?")
+                    .setPositiveButton("Delete", (dialog, which) -> {
+                        RecipeDbHelper dbHelper = new RecipeDbHelper(requireContext());
+                        dbHelper.deleteRecipe(recipeId);
 
-            String fullRecipeText =
-                    recipeTitle + "\n\n" +
-                            "Ingredients:\n" + args.getString(ARG_INGREDIENTS, "") + "\n\n" +
-                            "Instructions:\n" + args.getString(ARG_INSTRUCTIONS, "") + "\n\n" +
-                            "Macros:\n" +
-                            "Calories: " + args.getString(ARG_CALORIES, "") + "\n" +
-                            "Protein: " + args.getString(ARG_PROTEIN, "") + "g\n" +
-                            "Carbs: " + args.getString(ARG_CARBS, "") + "g\n" +
-                            "Fat: " + args.getString(ARG_FAT, "") + "g";
+                        Toast.makeText(getContext(), "Recipe deleted", Toast.LENGTH_SHORT).show();
 
-            copyButton.setOnClickListener(v -> {
-                ClipboardManager clipboard =
-                        (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                        requireActivity()
+                                .getSupportFragmentManager()
+                                .beginTransaction()
+                                .replace(R.id.fragment_container, new RecipeFragment())
+                                .commit();
 
-                ClipData clip = ClipData.newPlainText("Recipe", fullRecipeText);
-                clipboard.setPrimaryClip(clip);
-
-                Toast.makeText(getContext(), "Recipe copied to clipboard", Toast.LENGTH_SHORT).show();
-            });
-
-            editButton.setOnClickListener(v -> {
-                Recipe recipe = new Recipe(
-                        recipeId,
-                        recipeTitle,
-                        args.getString(ARG_INGREDIENTS, ""),
-                        args.getString(ARG_INSTRUCTIONS, ""),
-                        imageUri,
-                        args.getString(ARG_CALORIES, ""),
-                        args.getString(ARG_PROTEIN, ""),
-                        args.getString(ARG_CARBS, ""),
-                        args.getString(ARG_FAT, "")
-                );
-
-                requireActivity()
-                        .getSupportFragmentManager()
-                        .beginTransaction()
-                        .replace(R.id.fragment_container, AddRecipeFragment.newInstanceForEdit(recipe))
-                        .addToBackStack(null)
-                        .commit();
-
-                ((MainActivity) requireActivity()).setToolbarTitle("Edit Recipe");
-            });
-
-            deleteButton.setOnClickListener(v -> {
-                new AlertDialog.Builder(requireContext())
-                        .setTitle("Delete Recipe")
-                        .setMessage("Are you sure you want to delete this recipe?")
-                        .setPositiveButton("Delete", (dialog, which) -> {
-                            RecipeDbHelper dbHelper = new RecipeDbHelper(requireContext());
-                            dbHelper.deleteRecipe(recipeId);
-
-                            Toast.makeText(getContext(), "Recipe deleted", Toast.LENGTH_SHORT).show();
-
-                            requireActivity()
-                                    .getSupportFragmentManager()
-                                    .beginTransaction()
-                                    .replace(R.id.fragment_container, new RecipeFragment())
-                                    .commit();
-
-                            ((MainActivity) requireActivity()).setToolbarTitle("Recipe Manager");
-                        })
-                        .setNegativeButton("Cancel", null)
-                        .show();
-            });
-        }
+                        ((MainActivity) requireActivity()).setToolbarTitle("Recipe Manager");
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        });
     }
 }

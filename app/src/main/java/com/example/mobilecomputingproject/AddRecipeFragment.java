@@ -1,5 +1,6 @@
 package com.example.mobilecomputingproject;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -21,7 +22,8 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.example.mobilecomputingproject.api.UsdaRepository;
-import android.app.AlertDialog;
+
+import java.util.ArrayList;
 
 public class AddRecipeFragment extends Fragment {
 
@@ -35,20 +37,28 @@ public class AddRecipeFragment extends Fragment {
     private static final String ARG_PROTEIN = "protein";
     private static final String ARG_CARBS = "carbs";
     private static final String ARG_FAT = "fat";
+    private static final String ARG_TAGS = "tags";
+
     private EditText titleInput;
+    private EditText tagsInput;
     private EditText ingredientsInput;
     private EditText instructionsInput;
     private EditText caloriesInput;
     private EditText proteinInput;
     private EditText carbsInput;
     private EditText fatInput;
+
     private Button saveButton;
     private Button selectImageButton;
+    private Button selectExistingTagsButton;
+
     private ImageView recipeImagePreview;
     private Switch autoMacrosSwitch;
     private LinearLayout manualMacrosLayout;
+
     private Uri selectedImageUri;
     private RecipeDbHelper dbHelper;
+
     private boolean isEditMode = false;
     private long editRecipeId = -1;
     private boolean hasShownAutoMacrosWarning = false;
@@ -91,6 +101,7 @@ public class AddRecipeFragment extends Fragment {
         dbHelper = new RecipeDbHelper(requireContext());
 
         titleInput = view.findViewById(R.id.recipe_title_input);
+        tagsInput = view.findViewById(R.id.recipe_tags_input);
         ingredientsInput = view.findViewById(R.id.recipe_ingredients_input);
         instructionsInput = view.findViewById(R.id.recipe_instructions_input);
 
@@ -101,10 +112,13 @@ public class AddRecipeFragment extends Fragment {
 
         saveButton = view.findViewById(R.id.save_recipe_button);
         selectImageButton = view.findViewById(R.id.select_image_button);
-        recipeImagePreview = view.findViewById(R.id.recipe_image_preview);
+        selectExistingTagsButton = view.findViewById(R.id.select_existing_tags_button);
 
+        recipeImagePreview = view.findViewById(R.id.recipe_image_preview);
         autoMacrosSwitch = view.findViewById(R.id.auto_macros_switch);
         manualMacrosLayout = view.findViewById(R.id.manual_macros_layout);
+
+        selectExistingTagsButton.setOnClickListener(v -> showExistingTagsDialog());
 
         selectImageButton.setOnClickListener(v ->
                 imagePickerLauncher.launch(new String[]{"image/*"})
@@ -140,6 +154,7 @@ public class AddRecipeFragment extends Fragment {
         editRecipeId = args.getLong(ARG_ID);
 
         titleInput.setText(args.getString(ARG_TITLE, ""));
+        tagsInput.setText(args.getString(ARG_TAGS, ""));
         ingredientsInput.setText(args.getString(ARG_INGREDIENTS, ""));
         instructionsInput.setText(args.getString(ARG_INSTRUCTIONS, ""));
         caloriesInput.setText(args.getString(ARG_CALORIES, ""));
@@ -159,6 +174,7 @@ public class AddRecipeFragment extends Fragment {
 
     private void saveRecipe() {
         String title = titleInput.getText().toString().trim();
+        String tags = cleanTags(tagsInput.getText().toString().trim());
         String ingredients = ingredientsInput.getText().toString().trim();
         String instructions = instructionsInput.getText().toString().trim();
 
@@ -181,7 +197,7 @@ public class AddRecipeFragment extends Fragment {
         boolean useAutoMacros = autoMacrosSwitch.isChecked();
 
         if (useAutoMacros) {
-            fetchMacrosThenSave(title, ingredients, instructions, imageUri);
+            fetchMacrosThenSave(title, tags, ingredients, instructions, imageUri);
         } else {
             String calories = caloriesInput.getText().toString().trim();
             String protein = proteinInput.getText().toString().trim();
@@ -190,6 +206,7 @@ public class AddRecipeFragment extends Fragment {
 
             saveRecipeToDatabase(
                     title,
+                    tags,
                     ingredients,
                     instructions,
                     imageUri,
@@ -203,6 +220,7 @@ public class AddRecipeFragment extends Fragment {
 
     private void fetchMacrosThenSave(
             String title,
+            String tags,
             String ingredients,
             String instructions,
             String imageUri
@@ -224,6 +242,7 @@ public class AddRecipeFragment extends Fragment {
                     public void onSuccess(String apiCalories, String apiProtein, String apiCarbs, String apiFat) {
                         saveRecipeToDatabase(
                                 title,
+                                tags,
                                 ingredients,
                                 instructions,
                                 imageUri,
@@ -255,6 +274,7 @@ public class AddRecipeFragment extends Fragment {
 
     private void saveRecipeToDatabase(
             String title,
+            String tags,
             String ingredients,
             String instructions,
             String imageUri,
@@ -272,7 +292,8 @@ public class AddRecipeFragment extends Fragment {
                 calories,
                 protein,
                 carbs,
-                fat
+                fat,
+                tags
         );
 
         long result;
@@ -305,6 +326,90 @@ public class AddRecipeFragment extends Fragment {
         ((MainActivity) requireActivity()).setToolbarTitle("Recipe Manager");
     }
 
+    private String cleanTags(String rawTags) {
+        if (rawTags == null || rawTags.trim().isEmpty()) {
+            return "";
+        }
+
+        String[] splitTags = rawTags.split(",");
+        StringBuilder cleaned = new StringBuilder();
+
+        for (String tag : splitTags) {
+            String cleanedTag = tag.trim();
+
+            if (!cleanedTag.isEmpty()) {
+                if (cleaned.length() > 0) {
+                    cleaned.append(", ");
+                }
+
+                cleaned.append(cleanedTag);
+            }
+        }
+
+        return cleaned.toString();
+    }
+
+    private void showExistingTagsDialog() {
+        ArrayList<String> existingTags = dbHelper.getAllTags();
+
+        if (existingTags.isEmpty()) {
+            Toast.makeText(getContext(), "No existing tags found", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String[] tagArray = existingTags.toArray(new String[0]);
+        boolean[] checkedItems = new boolean[tagArray.length];
+
+        String currentTags = tagsInput.getText().toString();
+
+        for (int i = 0; i < tagArray.length; i++) {
+            checkedItems[i] = currentTags.toLowerCase().contains(tagArray[i].toLowerCase());
+        }
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Select Tags")
+                .setMultiChoiceItems(tagArray, checkedItems, (dialog, which, isChecked) -> {
+                    checkedItems[which] = isChecked;
+                })
+                .setPositiveButton("Add Tags", (dialog, which) -> {
+                    StringBuilder selectedTags = new StringBuilder(tagsInput.getText().toString().trim());
+
+                    for (int i = 0; i < tagArray.length; i++) {
+                        if (checkedItems[i]) {
+                            String tag = tagArray[i];
+
+                            if (!containsTag(selectedTags.toString(), tag)) {
+                                if (selectedTags.length() > 0) {
+                                    selectedTags.append(", ");
+                                }
+
+                                selectedTags.append(tag);
+                            }
+                        }
+                    }
+
+                    tagsInput.setText(cleanTags(selectedTags.toString()));
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private boolean containsTag(String currentTags, String tagToCheck) {
+        if (currentTags == null || currentTags.trim().isEmpty()) {
+            return false;
+        }
+
+        String[] splitTags = currentTags.split(",");
+
+        for (String tag : splitTags) {
+            if (tag.trim().equalsIgnoreCase(tagToCheck.trim())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static AddRecipeFragment newInstanceForEdit(Recipe recipe) {
         AddRecipeFragment fragment = new AddRecipeFragment();
         Bundle args = new Bundle();
@@ -312,6 +417,7 @@ public class AddRecipeFragment extends Fragment {
         args.putBoolean(ARG_IS_EDIT, true);
         args.putLong(ARG_ID, recipe.getId());
         args.putString(ARG_TITLE, recipe.getTitle());
+        args.putString(ARG_TAGS, recipe.getTags());
         args.putString(ARG_INGREDIENTS, recipe.getIngredients());
         args.putString(ARG_INSTRUCTIONS, recipe.getInstructions());
         args.putString(ARG_IMAGE_URI, recipe.getImageUri());

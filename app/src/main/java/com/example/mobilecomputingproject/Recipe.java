@@ -10,9 +10,11 @@ public class Recipe {
     private String protein;
     private String carbs;
     private String fat;
+    private String tags;
 
     public Recipe(long id, String title, String ingredients, String instructions,
-                  String imageUri, String calories, String protein, String carbs, String fat) {
+                  String imageUri, String calories, String protein, String carbs, String fat,
+                  String tags) {
         this.id = id;
         this.title = title;
         this.ingredients = ingredients;
@@ -22,6 +24,7 @@ public class Recipe {
         this.protein = protein;
         this.carbs = carbs;
         this.fat = fat;
+        this.tags = tags;
     }
 
     public long getId() {
@@ -58,5 +61,9 @@ public class Recipe {
 
     public String getFat() {
         return fat;
+    }
+
+    public String getTags() {
+        return tags;
     }
 }

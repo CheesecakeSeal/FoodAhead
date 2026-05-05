@@ -11,9 +11,11 @@ import java.util.ArrayList;
 
 public class RecipeDbHelper extends SQLiteOpenHelper {
 
-    public static final int DATABASE_VERSION = 4;
+    public static final int DATABASE_VERSION = 5;
     public static final String DATABASE_NAME = "foodahead.db";
+
     public static final String TABLE_RECIPES = "recipes";
+
     public static final String COLUMN_TITLE = "title";
     public static final String COLUMN_INGREDIENTS = "ingredients";
     public static final String COLUMN_INSTRUCTIONS = "instructions";
@@ -22,6 +24,8 @@ public class RecipeDbHelper extends SQLiteOpenHelper {
     public static final String COLUMN_PROTEIN = "protein";
     public static final String COLUMN_CARBS = "carbs";
     public static final String COLUMN_FAT = "fat";
+    public static final String COLUMN_TAGS = "tags";
+
     private static final String TABLE_MEAL_PLAN = "meal_plan";
     private static final String COLUMN_DAY = "day";
     private static final String COLUMN_HOUR = "hour";
@@ -44,16 +48,18 @@ public class RecipeDbHelper extends SQLiteOpenHelper {
                         COLUMN_CALORIES + " TEXT, " +
                         COLUMN_PROTEIN + " TEXT, " +
                         COLUMN_CARBS + " TEXT, " +
-                        COLUMN_FAT + " TEXT)";
+                        COLUMN_FAT + " TEXT, " +
+                        COLUMN_TAGS + " TEXT)";
 
         db.execSQL(createRecipesTable);
 
-        String createMealPlanTable = "CREATE TABLE " + TABLE_MEAL_PLAN + " (" +
-                BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                COLUMN_DAY + " INTEGER, " +
-                COLUMN_HOUR + " INTEGER, " +
-                COLUMN_RECIPE_ID + " INTEGER, " +
-                COLUMN_RECIPE_TITLE + " TEXT)";
+        String createMealPlanTable =
+                "CREATE TABLE " + TABLE_MEAL_PLAN + " (" +
+                        BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        COLUMN_DAY + " INTEGER, " +
+                        COLUMN_HOUR + " INTEGER, " +
+                        COLUMN_RECIPE_ID + " INTEGER, " +
+                        COLUMN_RECIPE_TITLE + " TEXT)";
 
         db.execSQL(createMealPlanTable);
     }
@@ -82,6 +88,7 @@ public class RecipeDbHelper extends SQLiteOpenHelper {
         values.put(COLUMN_PROTEIN, recipe.getProtein());
         values.put(COLUMN_CARBS, recipe.getCarbs());
         values.put(COLUMN_FAT, recipe.getFat());
+        values.put(COLUMN_TAGS, recipe.getTags());
 
         return db.insert(TABLE_RECIPES, null, values);
     }
@@ -91,8 +98,6 @@ public class RecipeDbHelper extends SQLiteOpenHelper {
 
         SQLiteDatabase db = this.getReadableDatabase();
 
-        String sortOrder = COLUMN_TITLE + " ASC";
-
         Cursor cursor = db.query(
                 TABLE_RECIPES,
                 null,
@@ -100,39 +105,70 @@ public class RecipeDbHelper extends SQLiteOpenHelper {
                 null,
                 null,
                 null,
-                sortOrder
+                COLUMN_TITLE + " ASC"
         );
 
         while (cursor.moveToNext()) {
-            long id = cursor.getLong(cursor.getColumnIndexOrThrow(BaseColumns._ID));
-            String title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE));
-            String ingredients = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_INGREDIENTS));
-            String instructions = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_INSTRUCTIONS));
-            String imageUri = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_IMAGE_URI));
-            String calories = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CALORIES));
-            String protein = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_PROTEIN));
-            String carbs = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CARBS));
-            String fat = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_FAT));
-
-            recipes.add(new Recipe(
-                    id,
-                    title,
-                    ingredients,
-                    instructions,
-                    imageUri,
-                    calories,
-                    protein,
-                    carbs,
-                    fat
-            ));
+            recipes.add(createRecipeFromCursor(cursor));
         }
 
         cursor.close();
         return recipes;
     }
 
+    public Recipe getRecipeById(long recipeId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.query(
+                TABLE_RECIPES,
+                null,
+                BaseColumns._ID + " = ?",
+                new String[]{String.valueOf(recipeId)},
+                null,
+                null,
+                null
+        );
+
+        Recipe recipe = null;
+
+        if (cursor.moveToFirst()) {
+            recipe = createRecipeFromCursor(cursor);
+        }
+
+        cursor.close();
+        return recipe;
+    }
+
+    private Recipe createRecipeFromCursor(Cursor cursor) {
+        long id = cursor.getLong(cursor.getColumnIndexOrThrow(BaseColumns._ID));
+        String title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE));
+        String ingredients = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_INGREDIENTS));
+        String instructions = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_INSTRUCTIONS));
+        String imageUri = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_IMAGE_URI));
+        String calories = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CALORIES));
+        String protein = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_PROTEIN));
+        String carbs = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CARBS));
+        String fat = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_FAT));
+        String tags = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TAGS));
+
+        return new Recipe(
+                id,
+                title,
+                ingredients,
+                instructions,
+                imageUri,
+                calories,
+                protein,
+                carbs,
+                fat,
+                tags
+        );
+    }
+
     public int deleteRecipe(long id) {
         SQLiteDatabase db = this.getWritableDatabase();
+
+        clearMealPlanEntriesForRecipe(id);
 
         return db.delete(
                 TABLE_RECIPES,
@@ -153,6 +189,9 @@ public class RecipeDbHelper extends SQLiteOpenHelper {
         values.put(COLUMN_PROTEIN, recipe.getProtein());
         values.put(COLUMN_CARBS, recipe.getCarbs());
         values.put(COLUMN_FAT, recipe.getFat());
+        values.put(COLUMN_TAGS, recipe.getTags());
+
+        updateMealPlanRecipeTitle(recipe.getId(), recipe.getTitle());
 
         return db.update(
                 TABLE_RECIPES,
@@ -160,6 +199,50 @@ public class RecipeDbHelper extends SQLiteOpenHelper {
                 BaseColumns._ID + " = ?",
                 new String[]{String.valueOf(recipe.getId())}
         );
+    }
+
+    public ArrayList<String> getAllTags() {
+        ArrayList<String> tagsList = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.query(
+                TABLE_RECIPES,
+                new String[]{COLUMN_TAGS},
+                null,
+                null,
+                null,
+                null,
+                COLUMN_TAGS + " ASC"
+        );
+
+        while (cursor.moveToNext()) {
+            String tags = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TAGS));
+
+            if (tags != null && !tags.trim().isEmpty()) {
+                String[] splitTags = tags.split(",");
+
+                for (String tag : splitTags) {
+                    String cleanedTag = tag.trim();
+
+                    if (!cleanedTag.isEmpty() && !containsIgnoreCase(tagsList, cleanedTag)) {
+                        tagsList.add(cleanedTag);
+                    }
+                }
+            }
+        }
+
+        cursor.close();
+        return tagsList;
+    }
+
+    private boolean containsIgnoreCase(ArrayList<String> list, String value) {
+        for (String item : list) {
+            if (item.equalsIgnoreCase(value)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public void saveMealPlan(int day, int hour, long recipeId, String recipeTitle) {
@@ -211,49 +294,6 @@ public class RecipeDbHelper extends SQLiteOpenHelper {
         return "";
     }
 
-    public void clearMealSlot(int day, int hour) {
-        SQLiteDatabase db = this.getWritableDatabase();
-
-        db.delete(
-                TABLE_MEAL_PLAN,
-                COLUMN_DAY + "=? AND " + COLUMN_HOUR + "=?",
-                new String[]{String.valueOf(day), String.valueOf(hour)}
-        );
-    }
-
-    public Recipe getRecipeById(long recipeId) {
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        Cursor cursor = db.query(
-                TABLE_RECIPES,
-                null,
-                BaseColumns._ID + " = ?",
-                new String[]{String.valueOf(recipeId)},
-                null,
-                null,
-                null
-        );
-
-        Recipe recipe = null;
-
-        if (cursor.moveToFirst()) {
-            recipe = new Recipe(
-                    cursor.getLong(cursor.getColumnIndexOrThrow(BaseColumns._ID)),
-                    cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE)),
-                    cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_INGREDIENTS)),
-                    cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_INSTRUCTIONS)),
-                    cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_IMAGE_URI)),
-                    cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CALORIES)),
-                    cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_PROTEIN)),
-                    cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CARBS)),
-                    cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_FAT))
-            );
-        }
-
-        cursor.close();
-        return recipe;
-    }
-
     public long getMealRecipeIdForSlot(int day, int hour) {
         SQLiteDatabase db = this.getReadableDatabase();
 
@@ -272,6 +312,40 @@ public class RecipeDbHelper extends SQLiteOpenHelper {
 
         cursor.close();
         return -1;
+    }
+
+    public void clearMealSlot(int day, int hour) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        db.delete(
+                TABLE_MEAL_PLAN,
+                COLUMN_DAY + "=? AND " + COLUMN_HOUR + "=?",
+                new String[]{String.valueOf(day), String.valueOf(hour)}
+        );
+    }
+
+    private void clearMealPlanEntriesForRecipe(long recipeId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        db.delete(
+                TABLE_MEAL_PLAN,
+                COLUMN_RECIPE_ID + "=?",
+                new String[]{String.valueOf(recipeId)}
+        );
+    }
+
+    private void updateMealPlanRecipeTitle(long recipeId, String newTitle) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_RECIPE_TITLE, newTitle);
+
+        db.update(
+                TABLE_MEAL_PLAN,
+                values,
+                COLUMN_RECIPE_ID + "=?",
+                new String[]{String.valueOf(recipeId)}
+        );
     }
 
     public void clearAllRecipes() {

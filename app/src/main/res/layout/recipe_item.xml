@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="88dp"
+    android:layout_height="96dp"
     android:orientation="horizontal"
     android:gravity="center_vertical"
     android:padding="12dp"
@@ -15,14 +15,33 @@
         android:src="@android:drawable/ic_menu_gallery"
         android:contentDescription="Recipe image" />
 
-    <TextView
-        android:id="@+id/recipe_title"
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:layout_marginStart="16dp"
-        android:text="Recipe Name"
-        android:textSize="18sp"
-        android:textStyle="bold" />
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/recipe_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Recipe Name"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/recipe_tags"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tags: None"
+            android:textSize="13sp"
+            android:layout_marginTop="4dp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+    </LinearLayout>
 
 </LinearLayout>

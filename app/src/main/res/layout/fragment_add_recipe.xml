@@ -16,6 +16,18 @@
             android:hint="Recipe title" />
 
         <EditText
+            android:id="@+id/recipe_tags_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Tags e.g. Vegan, Vegetarian, High Protein" />
+
+        <Button
+            android:id="@+id/select_existing_tags_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Select Existing Tags" />
+
+        <EditText
             android:id="@+id/recipe_ingredients_input"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
