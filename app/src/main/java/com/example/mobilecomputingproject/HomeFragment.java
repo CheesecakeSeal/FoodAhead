@@ -23,39 +23,49 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Locale;
 
+/**
+ * Home screen / dashboard for macro progress tracking.
+ *
+ * This fragment lets the user:
+ * - Set calorie, protein, carbs, and fat targets.
+ * - Track progress towards those targets with progress bars.
+ * - Add progress manually.
+ * - Add progress from a saved recipe.
+ * - See whether the previous daily/weekly target period was successful.
+ *
+ * The target mode is controlled from Settings:
+ * - Daily targets reset every day at midnight.
+ * - Weekly targets reset every Monday at midnight.
+ *
+ * SharedPreferences is used here instead of SQLite because macro targets and progress values are
+ * simple key-value settings rather than relational data.
+ */
 public class HomeFragment extends Fragment {
 
     private static final String PREFS_NAME = "FoodAheadPrefs";
-
     private static final String KEY_DAILY_TARGETS = "daily_targets";
     private static final String KEY_PERIOD_START = "macro_period_start";
-
     private static final String KEY_GOAL_CALORIES = "goal_calories";
     private static final String KEY_GOAL_PROTEIN = "goal_protein";
     private static final String KEY_GOAL_CARBS = "goal_carbs";
     private static final String KEY_GOAL_FAT = "goal_fat";
-
     private static final String KEY_CURRENT_CALORIES = "current_calories";
     private static final String KEY_CURRENT_PROTEIN = "current_protein";
     private static final String KEY_CURRENT_CARBS = "current_carbs";
     private static final String KEY_CURRENT_FAT = "current_fat";
-
     private static final String KEY_HAS_LAST_RESULT = "has_last_result";
     private static final String KEY_LAST_CALORIES_SUCCESS = "last_calories_success";
     private static final String KEY_LAST_PROTEIN_SUCCESS = "last_protein_success";
     private static final String KEY_LAST_CARBS_SUCCESS = "last_carbs_success";
     private static final String KEY_LAST_FAT_SUCCESS = "last_fat_success";
-
     private static final String KEY_LAST_CALORIES_PROGRESS = "last_calories_progress";
     private static final String KEY_LAST_PROTEIN_PROGRESS = "last_protein_progress";
     private static final String KEY_LAST_CARBS_PROGRESS = "last_carbs_progress";
     private static final String KEY_LAST_FAT_PROGRESS = "last_fat_progress";
-
     private static final String KEY_LAST_CALORIES_GOAL = "last_calories_goal";
     private static final String KEY_LAST_PROTEIN_GOAL = "last_protein_goal";
     private static final String KEY_LAST_CARBS_GOAL = "last_carbs_goal";
     private static final String KEY_LAST_FAT_GOAL = "last_fat_goal";
-
     private TextView homeHeading;
     private TextView caloriesProgressText;
     private TextView proteinProgressText;
@@ -63,16 +73,13 @@ public class HomeFragment extends Fragment {
     private TextView fatProgressText;
     private TextView lastPeriodHeading;
     private TextView lastWeekResultsText;
-
     private ProgressBar caloriesProgressBar;
     private ProgressBar proteinProgressBar;
     private ProgressBar carbsProgressBar;
     private ProgressBar fatProgressBar;
-
     private Button setGoalsButton;
     private Button addManualProgressButton;
     private Button addRecipeProgressButton;
-
     private SharedPreferences prefs;
     private RecipeDbHelper dbHelper;
 
@@ -119,6 +126,7 @@ public class HomeFragment extends Fragment {
         addRecipeProgressButton = view.findViewById(R.id.add_recipe_progress_button);
 
         checkPeriodReset();
+
         updateProgressViews();
 
         setGoalsButton.setOnClickListener(v -> showSetGoalsDialog());
@@ -126,16 +134,35 @@ public class HomeFragment extends Fragment {
         addRecipeProgressButton.setOnClickListener(v -> showRecipeProgressDialog());
     }
 
+    /**
+     * Reads the target mode from SharedPreferences.
+     *
+     * Default is true, meaning the app uses daily targets unless the user enables weekly targets
+     * in Settings.
+     */
     private boolean isDailyTargetsEnabled() {
         return prefs.getBoolean(KEY_DAILY_TARGETS, true);
     }
 
+    /**
+     * Checks whether the current tracking period has changed.
+     *
+     * Example:
+     * - Daily mode: if the saved period start was yesterday's midnight and today is now active,
+     *   save yesterday's result and reset today's progress.
+     * - Weekly mode: if the saved period start was last Monday and a new Monday has started,
+     *   save last week's result and reset weekly progress.
+     */
     private void checkPeriodReset() {
         boolean dailyTargets = isDailyTargetsEnabled();
 
         long currentPeriodStart = getCurrentPeriodStartMillis(dailyTargets);
         long savedPeriodStart = prefs.getLong(KEY_PERIOD_START, -1);
 
+        /*
+         * First time using the tracker: initialise the period start and do not save any previous
+         * result because there is no completed period yet.
+         */
         if (savedPeriodStart == -1) {
             prefs.edit()
                     .putLong(KEY_PERIOD_START, currentPeriodStart)
@@ -143,6 +170,10 @@ public class HomeFragment extends Fragment {
             return;
         }
 
+        /*
+         * If the calculated current period is newer than the saved one, the previous period has
+         * ended. Save its success/failure result, then reset current progress for the new period.
+         */
         if (currentPeriodStart > savedPeriodStart) {
             saveLastPeriodResult();
 
@@ -156,6 +187,9 @@ public class HomeFragment extends Fragment {
         }
     }
 
+    /**
+     * Returns the start timestamp for the currently active tracking period.
+     */
     private long getCurrentPeriodStartMillis(boolean dailyTargets) {
         if (dailyTargets) {
             return getTodayMidnightMillis();
@@ -164,6 +198,11 @@ public class HomeFragment extends Fragment {
         }
     }
 
+    /**
+     * Returns today's date at 00:00.
+     *
+     * Used as the period start for daily target tracking.
+     */
     private long getTodayMidnightMillis() {
         Calendar calendar = Calendar.getInstance();
 
@@ -175,6 +214,11 @@ public class HomeFragment extends Fragment {
         return calendar.getTimeInMillis();
     }
 
+    /**
+     * Returns Monday 00:00 for the current week.
+     *
+     * Used as the period start for weekly target tracking.
+     */
     private long getCurrentMondayMidnightMillis() {
         Calendar calendar = Calendar.getInstance();
 
@@ -183,9 +227,17 @@ public class HomeFragment extends Fragment {
         calendar.set(Calendar.SECOND, 0);
         calendar.set(Calendar.MILLISECOND, 0);
 
+        /*
+         * Calendar.DAY_OF_WEEK uses Sunday as 1 and Monday as 2.
+         * This calculation converts the current day into "days since Monday".
+         */
         int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
         int daysSinceMonday = dayOfWeek - Calendar.MONDAY;
 
+        /*
+         * If today is Sunday, daysSinceMonday becomes negative, so add 7 to move back to the
+         * previous Monday.
+         */
         if (daysSinceMonday < 0) {
             daysSinceMonday += 7;
         }
@@ -195,12 +247,26 @@ public class HomeFragment extends Fragment {
         return calendar.getTimeInMillis();
     }
 
+    /**
+     * Saves the result for the period that just ended.
+     *
+     * It records:
+     * - Whether each macro target was reached.
+     * - The previous progress values.
+     * - The previous target values.
+     *
+     * The target values are saved because the user might change their goals later, and the previous
+     * result should still reflect the targets that existed at the time.
+     */
     private void saveLastPeriodResult() {
         float goalCalories = getFloat(KEY_GOAL_CALORIES);
         float goalProtein = getFloat(KEY_GOAL_PROTEIN);
         float goalCarbs = getFloat(KEY_GOAL_CARBS);
         float goalFat = getFloat(KEY_GOAL_FAT);
 
+        /*
+         * Only create a previous result if at least one target was actually set.
+         */
         boolean goalsWereSet =
                 goalCalories > 0 ||
                         goalProtein > 0 ||
@@ -222,16 +288,25 @@ public class HomeFragment extends Fragment {
         prefs.edit()
                 .putBoolean(KEY_HAS_LAST_RESULT, true)
 
+                /*
+                 * A macro is successful only if a target was set and progress reached/exceeded it.
+                 */
                 .putBoolean(KEY_LAST_CALORIES_SUCCESS, goalCalories > 0 && currentCalories >= goalCalories)
                 .putBoolean(KEY_LAST_PROTEIN_SUCCESS, goalProtein > 0 && currentProtein >= goalProtein)
                 .putBoolean(KEY_LAST_CARBS_SUCCESS, goalCarbs > 0 && currentCarbs >= goalCarbs)
                 .putBoolean(KEY_LAST_FAT_SUCCESS, goalFat > 0 && currentFat >= goalFat)
 
+                /*
+                 * Store actual previous progress.
+                 */
                 .putFloat(KEY_LAST_CALORIES_PROGRESS, currentCalories)
                 .putFloat(KEY_LAST_PROTEIN_PROGRESS, currentProtein)
                 .putFloat(KEY_LAST_CARBS_PROGRESS, currentCarbs)
                 .putFloat(KEY_LAST_FAT_PROGRESS, currentFat)
 
+                /*
+                 * Store the goals that were active during that previous period.
+                 */
                 .putFloat(KEY_LAST_CALORIES_GOAL, goalCalories)
                 .putFloat(KEY_LAST_PROTEIN_GOAL, goalProtein)
                 .putFloat(KEY_LAST_CARBS_GOAL, goalCarbs)
@@ -240,6 +315,12 @@ public class HomeFragment extends Fragment {
                 .apply();
     }
 
+    /**
+     * Shows a dialog for setting macro targets.
+     *
+     * The same dialog is used for daily and weekly targets. The current mode is read from Settings
+     * and shown in the dialog title/message.
+     */
     private void showSetGoalsDialog() {
         boolean dailyTargets = isDailyTargetsEnabled();
 
@@ -250,6 +331,10 @@ public class HomeFragment extends Fragment {
         EditText carbsInput = createNumberInput("Carbs target (g)");
         EditText fatInput = createNumberInput("Fat target (g)");
 
+        /*
+         * Pre-fill the dialog with currently saved goals so users can edit instead of retyping
+         * everything.
+         */
         caloriesInput.setText(formatInputValue(getFloat(KEY_GOAL_CALORIES)));
         proteinInput.setText(formatInputValue(getFloat(KEY_GOAL_PROTEIN)));
         carbsInput.setText(formatInputValue(getFloat(KEY_GOAL_CARBS)));
@@ -267,6 +352,9 @@ public class HomeFragment extends Fragment {
                         : "These targets reset every Monday at midnight. Change target type in Settings.")
                 .setView(layout)
                 .setPositiveButton("Save", (dialog, which) -> {
+                    /*
+                     * Save target values. Empty/invalid fields are parsed as 0.
+                     */
                     prefs.edit()
                             .putFloat(KEY_GOAL_CALORIES, parseInput(caloriesInput))
                             .putFloat(KEY_GOAL_PROTEIN, parseInput(proteinInput))
@@ -281,6 +369,9 @@ public class HomeFragment extends Fragment {
                 .show();
     }
 
+    /**
+     * Shows a dialog that lets the user manually add consumed macros.
+     */
     private void showManualProgressDialog() {
         LinearLayout layout = createInputLayout();
 
@@ -311,6 +402,12 @@ public class HomeFragment extends Fragment {
                 .show();
     }
 
+    /**
+     * Shows a list of saved recipes so the user can add a recipe's macro values to progress.
+     *
+     * This reuses the macro values already stored for each recipe, whether they were entered
+     * manually or estimated through the USDA API.
+     */
     private void showRecipeProgressDialog() {
         ArrayList<Recipe> recipes = dbHelper.getAllRecipes();
 
@@ -343,6 +440,9 @@ public class HomeFragment extends Fragment {
                 .show();
     }
 
+    /**
+     * Adds macro values to the current period's progress.
+     */
     private void addProgress(float calories, float protein, float carbs, float fat) {
         prefs.edit()
                 .putFloat(KEY_CURRENT_CALORIES, getFloat(KEY_CURRENT_CALORIES) + calories)
@@ -354,9 +454,15 @@ public class HomeFragment extends Fragment {
         updateProgressViews();
     }
 
+    /**
+     * Refreshes all Home screen text and progress bars.
+     */
     private void updateProgressViews() {
         boolean dailyTargets = isDailyTargetsEnabled();
 
+        /*
+         * Adapt headings depending on the selected target mode.
+         */
         homeHeading.setText(dailyTargets ? "Daily Macro Targets" : "Weekly Macro Targets");
         lastPeriodHeading.setText(dailyTargets ? "Yesterday's Results" : "Last Week's Results");
 
@@ -409,6 +515,11 @@ public class HomeFragment extends Fragment {
         updateLastPeriodResults();
     }
 
+    /**
+     * Updates one macro text label and progress bar.
+     *
+     * The progress bar is capped at 100% so going over target does not visually overflow.
+     */
     private void updateSingleProgress(
             TextView textView,
             ProgressBar progressBar,
@@ -439,6 +550,9 @@ public class HomeFragment extends Fragment {
         progressBar.setProgress(progress);
     }
 
+    /**
+     * Displays the previous period's success/failure result.
+     */
     private void updateLastPeriodResults() {
         boolean dailyTargets = isDailyTargetsEnabled();
         boolean hasResult = prefs.getBoolean(KEY_HAS_LAST_RESULT, false);
@@ -485,6 +599,9 @@ public class HomeFragment extends Fragment {
         lastWeekResultsText.setText(resultText);
     }
 
+    /**
+     * Builds one line of previous-period result text.
+     */
     private String buildLastPeriodLine(
             String label,
             String successKey,
@@ -511,6 +628,9 @@ public class HomeFragment extends Fragment {
         );
     }
 
+    /**
+     * Creates a vertical layout used inside AlertDialogs.
+     */
     private LinearLayout createInputLayout() {
         LinearLayout layout = new LinearLayout(requireContext());
         layout.setOrientation(LinearLayout.VERTICAL);
@@ -518,6 +638,9 @@ public class HomeFragment extends Fragment {
         return layout;
     }
 
+    /**
+     * Creates a numeric EditText for macro/target input.
+     */
     private EditText createNumberInput(String hint) {
         EditText input = new EditText(requireContext());
         input.setHint(hint);

@@ -25,6 +25,21 @@ import com.example.mobilecomputingproject.api.UsdaRepository;
 
 import java.util.ArrayList;
 
+/**
+ * Fragment used for both adding a new recipe and editing an existing recipe.
+ *
+ * This screen is responsible for collecting:
+ * - Recipe title
+ * - Tags
+ * - Ingredients
+ * - Instructions
+ * - Optional image
+ * - Macro information
+ *
+ * Macro information can be entered manually by the user, or estimated using the USDA FoodData
+ * Central API. The auto-estimate feature is intentionally presented as an estimate because the API
+ * result depends on search matches and ingredient formatting.
+ */
 public class AddRecipeFragment extends Fragment {
 
     private static final String ARG_IS_EDIT = "isEdit";
@@ -38,7 +53,6 @@ public class AddRecipeFragment extends Fragment {
     private static final String ARG_CARBS = "carbs";
     private static final String ARG_FAT = "fat";
     private static final String ARG_TAGS = "tags";
-
     private EditText titleInput;
     private EditText tagsInput;
     private EditText ingredientsInput;
@@ -47,18 +61,14 @@ public class AddRecipeFragment extends Fragment {
     private EditText proteinInput;
     private EditText carbsInput;
     private EditText fatInput;
-
     private Button saveButton;
     private Button selectImageButton;
     private Button selectExistingTagsButton;
-
     private ImageView recipeImagePreview;
     private Switch autoMacrosSwitch;
     private LinearLayout manualMacrosLayout;
-
     private Uri selectedImageUri;
     private RecipeDbHelper dbHelper;
-
     private boolean isEditMode = false;
     private long editRecipeId = -1;
     private boolean hasShownAutoMacrosWarning = false;
@@ -67,6 +77,15 @@ public class AddRecipeFragment extends Fragment {
         // Required empty public constructor
     }
 
+    /**
+     * Launcher for Android's system document picker.
+     *
+     * ActivityResultContracts.OpenDocument is used because it allows the user to choose an image
+     * from their device storage or supported document providers.
+     *
+     * The app also takes persistable URI permission. This is important because without it, Android
+     * may later block access to the selected image after the app restarts.
+     */
     private final ActivityResultLauncher<String[]> imagePickerLauncher =
             registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
                 if (uri != null) {
@@ -118,17 +137,40 @@ public class AddRecipeFragment extends Fragment {
         autoMacrosSwitch = view.findViewById(R.id.auto_macros_switch);
         manualMacrosLayout = view.findViewById(R.id.manual_macros_layout);
 
+        /*
+         * Existing tags are not stored in a separate tag table.
+         * Instead, RecipeDbHelper collects distinct tags from recipes that already exist.
+         */
         selectExistingTagsButton.setOnClickListener(v -> showExistingTagsDialog());
 
+        /*
+         * Opens Android's image picker and limits choices to image files.
+         */
         selectImageButton.setOnClickListener(v ->
                 imagePickerLauncher.launch(new String[]{"image/*"})
         );
 
+        /*
+         * Save button handles both normal add mode and edit mode.
+         */
         saveButton.setOnClickListener(v -> saveRecipe());
 
+        /*
+         * When auto macros are enabled, hide manual macro inputs.
+         *
+         * This makes the UI clearer because the user should either enter macro values manually
+         * or let the API estimate them, not both at the same time.
+         */
         autoMacrosSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
             manualMacrosLayout.setVisibility(isChecked ? View.GONE : View.VISIBLE);
 
+            /*
+             * Show a warning the first time auto macros are enabled.
+             *
+             * This is important for usability because USDA estimates are not guaranteed to be
+             * perfectly accurate. The user should understand that manual entry may be better when
+             * exact nutrition is required.
+             */
             if (isChecked && !hasShownAutoMacrosWarning) {
                 hasShownAutoMacrosWarning = true;
 
@@ -140,9 +182,15 @@ public class AddRecipeFragment extends Fragment {
             }
         });
 
+        /*
+         * If this fragment was opened to edit an existing recipe, pre-fill all fields.
+         */
         setupEditModeIfNeeded();
     }
 
+    /**
+     * Checks whether this fragment was opened in edit mode.
+     */
     private void setupEditModeIfNeeded() {
         Bundle args = getArguments();
 
@@ -153,6 +201,9 @@ public class AddRecipeFragment extends Fragment {
         isEditMode = true;
         editRecipeId = args.getLong(ARG_ID);
 
+        /*
+         * Pre-fill text fields with the existing recipe data.
+         */
         titleInput.setText(args.getString(ARG_TITLE, ""));
         tagsInput.setText(args.getString(ARG_TAGS, ""));
         ingredientsInput.setText(args.getString(ARG_INGREDIENTS, ""));
@@ -162,6 +213,9 @@ public class AddRecipeFragment extends Fragment {
         carbsInput.setText(args.getString(ARG_CARBS, ""));
         fatInput.setText(args.getString(ARG_FAT, ""));
 
+        /*
+         * Restore image preview if the recipe already has an image URI.
+         */
         String imageUriString = args.getString(ARG_IMAGE_URI, "");
         if (imageUriString != null && !imageUriString.isEmpty()) {
             selectedImageUri = Uri.parse(imageUriString);
@@ -172,12 +226,18 @@ public class AddRecipeFragment extends Fragment {
         saveButton.setText("Update Recipe");
     }
 
+    /**
+     * Validates user input and decides whether to save manual macros or fetch USDA estimates.
+     */
     private void saveRecipe() {
         String title = titleInput.getText().toString().trim();
         String tags = cleanTags(tagsInput.getText().toString().trim());
         String ingredients = ingredientsInput.getText().toString().trim();
         String instructions = instructionsInput.getText().toString().trim();
 
+        /*
+         * Basic validation prevents empty required fields being saved to SQLite.
+         */
         if (TextUtils.isEmpty(title)) {
             titleInput.setError("Recipe title is required");
             return;
@@ -193,12 +253,25 @@ public class AddRecipeFragment extends Fragment {
             return;
         }
 
+        /*
+         * The image is optional. If no image was chosen, store an empty string.
+         */
         String imageUri = selectedImageUri != null ? selectedImageUri.toString() : "";
+
         boolean useAutoMacros = autoMacrosSwitch.isChecked();
 
         if (useAutoMacros) {
+            /*
+             * Auto macro path:
+             * Send the full ingredient list to UsdaRepository. The repository splits the text into
+             * individual ingredients, searches USDA, and returns summed macro values.
+             */
             fetchMacrosThenSave(title, tags, ingredients, instructions, imageUri);
         } else {
+            /*
+             * Manual macro path:
+             * Use the values typed directly by the user.
+             */
             String calories = caloriesInput.getText().toString().trim();
             String protein = proteinInput.getText().toString().trim();
             String carbs = carbsInput.getText().toString().trim();
@@ -213,11 +286,18 @@ public class AddRecipeFragment extends Fragment {
                     calories,
                     protein,
                     carbs,
-                    fat
+                    fat,
+                    ""
             );
         }
     }
 
+    /**
+     * Fetches macro estimates from the USDA repository before saving.
+     *
+     * This method disables the save button while the network request is running. That prevents the
+     * user from tapping Save multiple times and creating duplicate recipes or overlapping requests.
+     */
     private void fetchMacrosThenSave(
             String title,
             String tags,
@@ -225,21 +305,24 @@ public class AddRecipeFragment extends Fragment {
             String instructions,
             String imageUri
     ) {
-        String ingredientForApi = getFirstIngredient(ingredients);
-
-        if (ingredientForApi.isEmpty()) {
-            Toast.makeText(getContext(), "No ingredient found for macro lookup", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
         saveButton.setEnabled(false);
         saveButton.setText("Fetching macros...");
 
-        UsdaRepository.getInstance().fetchMacrosForIngredient(
-                ingredientForApi,
-                new UsdaRepository.MacroCallback() {
+        UsdaRepository.getInstance().fetchMacrosForIngredients(
+                ingredients,
+                new UsdaRepository.MacroMultiCallback() {
                     @Override
-                    public void onSuccess(String apiCalories, String apiProtein, String apiCarbs, String apiFat) {
+                    public void onSuccess(
+                            String apiCalories,
+                            String apiProtein,
+                            String apiCarbs,
+                            String apiFat,
+                            String usedIngredients
+                    ) {
+                        /*
+                         * USDA successfully returned macro estimates.
+                         * Save the recipe using the API-generated macro values.
+                         */
                         saveRecipeToDatabase(
                                 title,
                                 tags,
@@ -249,12 +332,17 @@ public class AddRecipeFragment extends Fragment {
                                 apiCalories,
                                 apiProtein,
                                 apiCarbs,
-                                apiFat
+                                apiFat,
+                                usedIngredients
                         );
                     }
 
                     @Override
                     public void onError(String message) {
+                        /*
+                         * Re-enable the save button so the user can try again or switch to manual
+                         * macro entry.
+                         */
                         saveButton.setEnabled(true);
                         saveButton.setText(isEditMode ? "Update Recipe" : "Save Recipe");
                         Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
@@ -263,15 +351,12 @@ public class AddRecipeFragment extends Fragment {
         );
     }
 
-    private String getFirstIngredient(String ingredients) {
-        if (ingredients == null || ingredients.trim().isEmpty()) {
-            return "";
-        }
-
-        String[] parts = ingredients.split("[,\\n]");
-        return parts[0].trim();
-    }
-
+    /**
+     * Inserts or updates the recipe in SQLite.
+     *
+     * macroEstimateSource is only filled when the USDA API was used. It is not stored in the
+     * database; it is only used for feedback in the Toast message.
+     */
     private void saveRecipeToDatabase(
             String title,
             String tags,
@@ -281,8 +366,15 @@ public class AddRecipeFragment extends Fragment {
             String calories,
             String protein,
             String carbs,
-            String fat
+            String fat,
+            String macroEstimateSource
     ) {
+        /*
+         * Create a Recipe object that matches the database model.
+         *
+         * New recipes use ID 0 because SQLite will assign the real autoincrement ID.
+         * Edited recipes keep their existing ID so updateRecipe knows which row to update.
+         */
         Recipe recipe = new Recipe(
                 isEditMode ? editRecipeId : 0,
                 title,
@@ -298,12 +390,18 @@ public class AddRecipeFragment extends Fragment {
 
         long result;
 
+        /*
+         * Choose insert or update depending on how the fragment was opened.
+         */
         if (isEditMode) {
             result = dbHelper.updateRecipe(recipe);
         } else {
             result = dbHelper.insertRecipe(recipe);
         }
 
+        /*
+         * SQLite insert/update failure
+         */
         if (result == -1) {
             Toast.makeText(getContext(), "Error saving recipe", Toast.LENGTH_SHORT).show();
             saveButton.setEnabled(true);
@@ -311,12 +409,29 @@ public class AddRecipeFragment extends Fragment {
             return;
         }
 
+        /*
+         * Give the user feedback after saving.
+         *
+         * If USDA was used, also show which ingredients were used in the estimate. This improves
+         * transparency because API-generated nutrition values are estimates, not guaranteed facts.
+         */
+        String successMessage = isEditMode ? "Recipe updated" : "Recipe saved";
+
+        if (macroEstimateSource != null && !macroEstimateSource.trim().isEmpty()) {
+            successMessage += ". Macros estimated using: " + macroEstimateSource;
+        }
+
         Toast.makeText(
                 getContext(),
-                isEditMode ? "Recipe updated" : "Recipe saved",
-                Toast.LENGTH_SHORT
+                successMessage,
+                macroEstimateSource != null && !macroEstimateSource.trim().isEmpty()
+                        ? Toast.LENGTH_LONG
+                        : Toast.LENGTH_SHORT
         ).show();
 
+        /*
+         * Return to Recipe Manager after saving.
+         */
         requireActivity()
                 .getSupportFragmentManager()
                 .beginTransaction()
@@ -326,6 +441,16 @@ public class AddRecipeFragment extends Fragment {
         ((MainActivity) requireActivity()).setToolbarTitle("Recipe Manager");
     }
 
+    /**
+     * Normalises the tags typed by the user.
+     *
+     * Example:
+     * " Vegan,  Vegetarian,High Protein "
+     * becomes:
+     * "Vegan, Vegetarian, High Protein"
+     *
+     * Tags are stored as comma-separated text for simplicity.
+     */
     private String cleanTags(String rawTags) {
         if (rawTags == null || rawTags.trim().isEmpty()) {
             return "";
@@ -349,6 +474,12 @@ public class AddRecipeFragment extends Fragment {
         return cleaned.toString();
     }
 
+    /**
+     * Shows a multi-select dialog containing tags already used in previous recipes.
+     *
+     * This improves usability because users do not need to repeatedly type common tags like
+     * "Vegan", "Vegetarian", or "High Protein".
+     */
     private void showExistingTagsDialog() {
         ArrayList<String> existingTags = dbHelper.getAllTags();
 
@@ -362,6 +493,9 @@ public class AddRecipeFragment extends Fragment {
 
         String currentTags = tagsInput.getText().toString();
 
+        /*
+         * Pre-check tags that are already typed into the input field.
+         */
         for (int i = 0; i < tagArray.length; i++) {
             checkedItems[i] = currentTags.toLowerCase().contains(tagArray[i].toLowerCase());
         }
@@ -374,6 +508,9 @@ public class AddRecipeFragment extends Fragment {
                 .setPositiveButton("Add Tags", (dialog, which) -> {
                     StringBuilder selectedTags = new StringBuilder(tagsInput.getText().toString().trim());
 
+                    /*
+                     * Add all checked tags that are not already present.
+                     */
                     for (int i = 0; i < tagArray.length; i++) {
                         if (checkedItems[i]) {
                             String tag = tagArray[i];
@@ -394,6 +531,12 @@ public class AddRecipeFragment extends Fragment {
                 .show();
     }
 
+    /**
+     * Checks whether a comma-separated tag string already contains a specific tag.
+     *
+     * This uses exact tag matching instead of simple String.contains().
+     * That avoids mistakes such as treating "Vegetarian" as already containing "Vegan".
+     */
     private boolean containsTag(String currentTags, String tagToCheck) {
         if (currentTags == null || currentTags.trim().isEmpty()) {
             return false;
@@ -410,6 +553,11 @@ public class AddRecipeFragment extends Fragment {
         return false;
     }
 
+    /**
+     * Factory method used by RecipeDetailFragment when the user taps Edit Recipe.
+     *
+     * It creates an AddRecipeFragment and attaches the existing recipe data as arguments.
+     */
     public static AddRecipeFragment newInstanceForEdit(Recipe recipe) {
         AddRecipeFragment fragment = new AddRecipeFragment();
         Bundle args = new Bundle();
